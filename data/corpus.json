@@ -1,0 +1,32 @@
+[
+  {
+    "id": "network-01",
+    "domain": "cybersecurity",
+    "parts": [
+      {
+        "narrative": "The operations team is investigating three service identities: Cedar, Birch, and Maple. The incident rule requires both an export after revocation and an export to a destination outside the approved network. A large transfer alone is insufficient. At 09:10 a preliminary dashboard named Cedar because its volume was the highest. The dashboard did not yet incorporate revocation records.\n\nThe destinations are grouped by ownership, rather than spelling. Vault is an approved internal archive. Harbor is an external collector. Mirror is an internal replica, even though its hostname looks unfamiliar. All three destinations use encryption; this does not establish ownership. The batch tagged R8 is scheduled maintenance, whereas R9 denotes the investigation interval.\n\nCedar's credential was revoked at 09:14. Its export at 09:12 went to Harbor and transferred 800 MB. Birch's credential was revoked at 09:08; its export at 09:11 went to Vault and transferred 120 MB. Maple's credential was revoked at 09:05; its export at 09:09 went to Harbor and transferred 90 MB. The smaller transfer was split over three packets, and the packet count does not change the event time.\n\nThe response playbook gives a 6-hour review window to the identity meeting both incident conditions. An identity meeting only the time condition gets a 12-hour review window; one meeting only the destination condition gets 24 hours. These windows describe triage, not credential lifetime. The qualifying incident is assigned batch R9. The earlier Cedar assessment should be interpreted using the complete event records.",
+        "questions": [
+          {"question": "Which identity satisfies both incident conditions?", "answer": "Maple"},
+          {"question": "How many hours is the review window for the identity satisfying both conditions? Return digits only.", "answer": "6"},
+          {"question": "Which destination received the qualifying export?", "answer": "Harbor"}
+        ]
+      },
+      {
+        "narrative": "Retain the incident identity, its review window, and the destination from the preceding report; this update intentionally does not repeat them. The next step is to find which relay carried that identity's qualifying export. A relay is implicated only if it carried the qualifying identity and its route was not replaced before the export.\n\nRelay Indigo carried Birch on a route installed at 09:00. Relay Copper carried Maple on a route installed at 09:04. Relay Silver carried Cedar on a route installed at 09:01. Copper's route persisted until 09:13. Silver was replaced at 09:06. Indigo persisted until 09:20. A preliminary routing memo preferred Silver because it had the greatest throughput; throughput is not part of the implication rule.\n\nThe repair registry binds Indigo to package P4, Copper to P7, and Silver to P2. These labels describe packages, not severity. P4 needs ten minutes to deploy, P7 needs eight, and P2 needs two. A separate diagnostic package P9 is never used to repair a relay. The first two minutes of any repair overlap a generic logging task and must not be subtracted from the listed deployment duration.\n\nThe owner mapping is deliberately separate from the routing table: Indigo belongs to team North, Copper to team East, and Silver to team West. The team attached to the implicated relay must approve the repair. The review deadline established in the preceding report remains unchanged. No subsequent package assignment changes which identity triggered the incident. Later reports will identify the repair by its package, so retain the package mapping and its deployment duration.",
+        "questions": [
+          {"question": "Which relay carried the previously qualifying identity on a route still present at its export time?", "answer": "Copper"},
+          {"question": "What repair package belongs to the implicated relay?", "answer": "P7"},
+          {"question": "Which team owns the implicated relay?", "answer": "East"}
+        ]
+      },
+      {
+        "narrative": "This is the final release decision. Use both earlier reports to recover the qualifying identity's destination and the package for the implicated relay. Release requires that a candidate match both the earlier destination and the repair package, with the package having completed deployment before the candidate's proposed release time.\n\nAll packages began deployment at 10:00. Apply the deployment durations given in the relay report. Candidate Aster uses Harbor with P7 and proposes release at 10:06. Candidate Rowan uses Harbor with P7 and proposes release at 10:10. Candidate Juniper uses Vault with P7 and proposes release at 10:10. Candidate Willow uses Harbor with P2 and proposes release at 10:10. An early planning note recommended Aster because it had the earliest slot, before package readiness was checked. No exception allows a package that is still deploying.\n\nThe release codes are Aster: K1, Rowan: K6, Juniper: K3, and Willow: K9. A code belongs to a candidate only; codes do not imply readiness or destination ownership. The signatures are stored in the same ordering but must not be mistaken for release codes. Aster is signed by operator Lark, Rowan by operator Finch, Juniper by operator Wren, and Willow by operator Dove.\n\nAn unrelated archive cleanup at 10:04 affected Mirror only. A scheduler delay of four seconds affected all candidates equally; use the stated minute-level times without applying a second correction. The final selected candidate's release code and signing operator must be retained together. Selection should be based on the two earlier findings and readiness, rather than the early planning note or the apparent attractiveness of an earlier slot.",
+        "questions": [
+          {"question": "Which candidate satisfies all release conditions using the previous two reports?", "answer": "Rowan"},
+          {"question": "What release code belongs to the candidate satisfying all conditions?", "answer": "K6"},
+          {"question": "Which operator signs the candidate satisfying all conditions?", "answer": "Finch"}
+        ]
+      }
+    ]
+  }
+]

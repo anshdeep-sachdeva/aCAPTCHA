@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>aCAPTCHA · Research prototype</title>
+<style>
+  body{font:16px/1.6 system-ui,sans-serif;background:#f5f6f8;color:#182334;margin:0}
+  main{max-width:900px;margin:40px auto;padding:0 24px}
+  h1{font-size:38px;margin-bottom:0} .muted{color:#5f6c7b}
+  .card{background:white;border:1px solid #d9dfe7;border-radius:14px;padding:24px;margin:20px 0}
+  button{background:#244bc0;color:white;border:0;border-radius:8px;padding:12px 18px;font-size:16px;cursor:pointer}
+  button:disabled{opacity:.5;cursor:default} input{font-size:16px;padding:12px;border:1px solid #a8b4c4;border-radius:8px;max-width:90%}
+  #narrative{white-space:pre-wrap} #status{font-weight:600} #timer{font-variant-numeric:tabular-nums}
+  summary{cursor:pointer} pre{white-space:pre-wrap;overflow-wrap:anywhere}
+</style>
+<main>
+  <p class="muted">CAPSTONE / AGENT CAPABILITY VERIFICATION</p>
+  <h1>aCAPTCHA</h1>
+  <p>Three linked narrative rounds test HTTP interaction, reasoning, and recall under a time limit.</p>
+  <p class="muted">Protocol demonstration with a small public corpus. A pass is a prototype verdict, not an identity credential or validated proof of agent status.</p>
+  <button id="start">Start a session</button>
+  <p id="status" role="status" aria-live="polite">Ready</p>
+  <section id="challenge" class="card" hidden>
+    <p><strong id="round"></strong> · <span id="timer"></span></p>
+    <div id="narrative"></div>
+    <h3 id="question"></h3>
+    <form id="form"><label for="answer">Short answer</label><br><input id="answer" autocomplete="off" maxlength="200" required> <button id="submit">Submit</button></form>
+  </section>
+  <details class="card"><summary>Prior rounds (client memory)</summary><div id="history"></div></details>
+  <details class="card"><summary>Use an agent over HTTP</summary>
+    <p>Start with <code>POST /api/sessions</code> and JSON <code>{}</code>. Read the narrative and question, retain the context, then POST <code>{"round": 1, "answer": "your answer"}</code> to the returned <code>submit_url</code>. Repeat with the next challenge until accepted or rejected.</p>
+    <p><a href="/docs">Interactive API documentation</a> · <a href="https://arxiv.org/abs/2603.07116">Research paper</a></p>
+  </details>
+</main>
+<script>
+let current=null, deadline=0, timer;
+const el=id=>document.getElementById(id);
+async function post(url,body){
+  const response=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+  const data=await response.json();
+  if(!response.ok) throw new Error(typeof data.detail==='string'?data.detail:JSON.stringify(data.detail));
+  return data;
+}
+function render(data,requestStarted){
+  clearInterval(timer);
+  if(data.status!=='challenge'){
+    current=null;el('challenge').hidden=true;
+    el('status').textContent=data.status==='accepted'?'Accepted · All three rounds completed.':'Rejected · '+data.reason;
+    return;
+  }
+  current=data;el('challenge').hidden=false;
+  el('round').textContent='Round '+data.round+' / '+data.total_rounds;
+  el('narrative').textContent=data.narrative;el('question').textContent=data.question;
+  el('answer').value='';el('status').textContent='Session active';
+  deadline=requestStarted+1000*Math.min(data.round_budget_seconds,data.session_remaining_seconds);
+  const tick=()=>{el('timer').textContent=Math.max(0,(deadline-performance.now())/1000).toFixed(1)+'s remaining (estimate)';};
+  tick();timer=setInterval(tick,100);el('answer').focus();
+}
+el('start').onclick=async()=>{
+  el('start').disabled=true;el('submit').disabled=true;current=null;clearInterval(timer);
+  el('challenge').hidden=true;el('history').replaceChildren();
+  try{const begun=performance.now();render(await post('/api/sessions',{}),begun);}
+  catch(error){el('status').textContent=error.message;}
+  finally{el('start').disabled=false;el('submit').disabled=false;}
+};
+el('form').onsubmit=async event=>{
+  event.preventDefault();if(!current)return;
+  el('submit').disabled=true;el('start').disabled=true;
+  const prior=current, answer=el('answer').value;
+  try{
+    const begun=performance.now();const data=await post(prior.submit_url,{round:prior.round,answer});
+    const entry=document.createElement('pre');entry.textContent='Round '+prior.round+'\n'+prior.narrative+'\nQuestion: '+prior.question+'\nSubmitted: '+answer;
+    el('history').append(entry);render(data,begun);
+  }catch(error){el('status').textContent=error.message;}
+  finally{el('submit').disabled=false;el('start').disabled=false;}
+};
+</script>
+</html>
